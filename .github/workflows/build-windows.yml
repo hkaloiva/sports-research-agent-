@@ -45,6 +45,12 @@ jobs:
           if ($LASTEXITCODE -ne 1) { throw "expected exit code 1 for an ambiguous query, got $LASTEXITCODE" }
           if ($output -notmatch "needs clarification") { throw "expected clarification output was missing" }
           if ($output -notmatch "Manchester United") { throw "expected clarification detail was missing" }
+          if ($output -notmatch [regex]::Escape("SPORTS RESEARCH AGENT — RESEARCH REPORT")) { throw "report header's em-dash was garbled (Windows console encoding regression)" }
+          # The exe's own exit code (1, expected/checked above) is still
+          # $LASTEXITCODE here — GitHub Actions' pwsh runner fails the step
+          # on a nonzero $LASTEXITCODE regardless of our own checks passing,
+          # so reset it now that we've confirmed 1 was correct.
+          exit 0
 
       - name: Zip the build
         run: Compress-Archive -Path dist\sports-research\* -DestinationPath sports-research-windows.zip
