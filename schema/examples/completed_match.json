@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0.0",
+  "event_id": "football:fifa-world-cup:2018:2018-07-15:france-vs-croatia",
+  "sport": "football",
+  "competition": "FIFA World Cup",
+  "season": "2018",
+  "round": "Final",
+  "date": "2018-07-15T18:00:00+03:00",
+  "home_team": "France",
+  "away_team": "Croatia",
+  "home_score": 4,
+  "away_score": 2,
+  "result": "home_win",
+  "venue": {
+    "name": "Luzhniki Stadium",
+    "city": "Moscow",
+    "country": "Russia"
+  },
+  "status": "completed",
+  "source": "Wikipedia",
+  "source_url": "https://en.wikipedia.org/wiki/2018_FIFA_World_Cup_final",
+  "source_accessed_at": "2026-08-22T12:00:00Z",
+  "verification_status": "verified",
+  "notes": "Score cross-checked against FIFA's official match report."
+}

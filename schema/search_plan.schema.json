@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sports-research-agent.local/schema/search_plan.schema.json",
+  "title": "Search Plan",
+  "description": "A deterministic research plan produced from a 'ready' ResearchRequest (see research_request.schema.json). This describes HOW a future research step should look for information — it does not perform any search, and none of its fields may be read as a claim that a source exists or that a query has produced results. See docs/search-strategy.md.",
+  "$comment": "search_scope reuses the same value/source/basis/raw_value envelope as ResearchRequest.constraints, carried through unchanged, so explicit-vs-inferred provenance survives from the request into the plan. Every other top-level field (search_queries, source_types, preferred_source_characteristics, pagination_strategy, verification_strategy) is a strategy decision made by the planner itself, not a request constraint — keeping those two kinds of information in separate fields is what preserves the distinction docs/search-strategy.md requires.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "research_request_id",
+    "search_queries",
+    "source_types",
+    "preferred_source_characteristics",
+    "search_scope",
+    "pagination_strategy",
+    "verification_strategy"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "description": "Version of this schema the plan conforms to. Optional; assumed current if omitted."
+    },
+    "research_request_id": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "Content fingerprint (sha256 of the canonical ResearchRequest JSON) identifying which request this plan was built from. ResearchRequest (research_request.schema.json) has no id field of its own, so this is computed rather than copied — the same request content always yields the same id."
+    },
+    "search_queries": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Generated query variations. Deliberately plural where the request supports it — different phrasings surface different sources. A rationale accompanies each so the strategy is auditable, not a black box.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["query", "rationale"],
+        "properties": {
+          "query": { "type": "string", "minLength": 1, "description": "The query text itself. A phrase to search for — not a claim it has been searched." },
+          "rationale": { "type": "string", "minLength": 1, "description": "Why this phrasing/angle was generated." }
+        }
+      }
+    },
+    "source_types": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Categories of source to look for, ordered most-preferred-first for the objective of building a structured dataset.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "official_competition_source",
+          "official_club_source",
+          "statistical_database",
+          "sports_reference_site",
+          "news_article",
+          "search_engine_result",
+          "other"
+        ]
+      }
+    },
+    "preferred_source_characteristics": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Qualities a good source for this plan should have (e.g. structured over narrative). Describes what to look for, not any specific source found.",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "search_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The subset of the originating ResearchRequest's constraints that bound this search, carried through with their original explicit/inferred provenance intact. A key present here means that dimension is bounded; an absent key means unbounded on that dimension (not unknown).",
+      "properties": {
+        "sport": { "$ref": "#/$defs/scope_field", "description": "Same vocabulary as result_record.schema.json's 'sport'." },
+        "competition": { "$ref": "#/$defs/scope_field", "description": "Competition/league/tournament name." },
+        "season": { "$ref": "#/$defs/scope_field", "description": "Canonical season, same format as the result schema." },
+        "date_from": { "$ref": "#/$defs/scope_field", "description": "Inclusive lower bound on event date." },
+        "date_to": { "$ref": "#/$defs/scope_field", "description": "Inclusive upper bound on event date." },
+        "teams": { "$ref": "#/$defs/scope_field", "description": "Team name(s) in scope." },
+        "venue": { "$ref": "#/$defs/scope_field", "description": "Venue filter, if any." },
+        "home_away": { "$ref": "#/$defs/scope_field", "description": "Home/away restriction, if any." },
+        "result_types": { "$ref": "#/$defs/scope_field", "description": "Result-type restriction, if any." }
+      }
+    },
+    "expected_result_count": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "basis"],
+      "description": "An ESTIMATE only, computed from documented competition-structure knowledge when available (e.g. Premier League = 38 matches per club per season since 1995-96). Omitted entirely when no such rule applies — never guessed. Not a claim that any source or query has actually returned this many results; no search has been performed.",
+      "properties": {
+        "value": { "type": "integer", "minimum": 0 },
+        "basis": { "type": "string", "minLength": 1, "description": "The documented rule/reasoning behind the estimate." }
+      }
+    },
+    "pagination_strategy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["approach", "max_pages_per_source", "notes"],
+      "description": "How a future research step should think about paging through a source. A heuristic starting point, not a claim about any real source's actual structure — no source has been visited yet.",
+      "properties": {
+        "approach": {
+          "type": "string",
+          "enum": ["bounded_range_lookup", "iterative_unbounded_lookup"],
+          "description": "'bounded_range_lookup': scope is bounded by a season or explicit date range. 'iterative_unbounded_lookup': no such bound exists (e.g. an all-time head-to-head), so more pages may be needed."
+        },
+        "max_pages_per_source": { "type": "integer", "minimum": 1, "description": "Suggested soft cap; a heuristic default, not a measured fact about any source." },
+        "notes": { "type": "string", "minLength": 1 }
+      }
+    },
+    "verification_strategy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requires_second_source", "fields_to_cross_check", "on_disagreement", "notes"],
+      "properties": {
+        "requires_second_source": {
+          "type": "boolean",
+          "description": "Whether an independent second source is required before a record can be marked verified. Derived directly from the request's 'verification' constraint."
+        },
+        "fields_to_cross_check": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Which result_record fields must be cross-checked across sources when requires_second_source is true.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "event_id", "sport", "competition", "season", "round", "date",
+              "home_team", "away_team", "home_score", "away_score", "result",
+              "venue", "status", "source", "source_url", "source_accessed_at",
+              "verification_status", "notes"
+            ]
+          }
+        },
+        "on_disagreement": {
+          "type": "string",
+          "enum": ["prefer_official_source_else_mark_conflicting", "mark_conflicting_no_resolution", "escalate_to_user"],
+          "description": "Policy for when cross-checked sources disagree. The planner's current deterministic default is 'prefer_official_source_else_mark_conflicting'; the other values remain valid schema options for future use."
+        },
+        "notes": { "type": "string", "minLength": 1 }
+      }
+    }
+  },
+  "$defs": {
+    "scope_field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "source"],
+      "properties": {
+        "value": {},
+        "source": { "type": "string", "enum": ["explicit", "inferred"] },
+        "basis": { "type": "string", "minLength": 1 },
+        "raw_value": { "type": "string", "minLength": 1 }
+      },
+      "if": { "required": ["source"], "properties": { "source": { "const": "inferred" } } },
+      "then": { "required": ["basis"] },
+      "else": { "not": { "required": ["basis"] } }
+    }
+  }
+}

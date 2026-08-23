@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sports-research-agent.local/schema/result_record.schema.json",
+  "title": "Sports Result Record",
+  "description": "Canonical schema for a single historical sports result, as researched, validated, and exported by Sports Research Agent. Designed around football/soccer first, but kept sport-agnostic where possible so other sports can be added later without breaking the shape of existing records. See docs/data-schema.md for the full field-by-field explanation.",
+  "$comment": "JSON Schema cannot express arithmetic comparisons between sibling properties, so the rule 'result must match the comparison of home_score vs away_score' is NOT enforced here. It is checked separately in scripts/validate_examples.py. The allOf block below enforces every other cross-field consistency rule (e.g. no scores/result on postponed or cancelled events) that IS expressible in plain JSON Schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "sport",
+    "competition",
+    "season",
+    "date",
+    "home_team",
+    "away_team",
+    "home_score",
+    "away_score",
+    "result",
+    "status",
+    "source",
+    "source_url",
+    "source_accessed_at",
+    "verification_status"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "description": "Version of this schema the record conforms to. Optional; assumed to be the current version if omitted."
+    },
+    "event_id": {
+      "type": "string",
+      "minLength": 3,
+      "description": "Stable, unique identifier for this event/result record. Recommended format: '{sport}:{competition-slug}:{season}:{date}:{home-team-slug}-vs-{away-team-slug}'. A UUIDv4 is also acceptable when a deterministic slug isn't practical. Must be stable across re-runs of the research pipeline so records can be de-duplicated and updated in place."
+    },
+    "sport": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "description": "Lowercase snake_case sport identifier, e.g. 'football'. Only 'football' is populated today; new sports are added by using a new snake_case value here, not by changing this field's definition, which is what keeps the schema extensible."
+    },
+    "competition": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable name of the competition/league/tournament, e.g. 'Premier League', 'UEFA Champions League', 'FIFA World Cup'. Use the full official name consistently across records rather than abbreviations."
+    },
+    "season": {
+      "type": "string",
+      "pattern": "^\\d{4}(-\\d{4})?$",
+      "description": "Season identifier: a single four-digit year ('2018') for competitions with a single-calendar-year season, or two four-digit years separated by a hyphen ('2023-2024') for seasons spanning a year boundary. Never use two-digit years."
+    },
+    "round": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional free-text round/stage within the competition, e.g. 'Matchday 5', 'Round of 16', 'Group A - Matchday 3', 'Final'. Omit when the competition has no round structure or the round is unknown."
+    },
+    "date": {
+      "description": "ISO 8601 date or date-time of the event. Use a date-only value ('YYYY-MM-DD') when only the date is known, or a full timestamp with a UTC offset (e.g. ending in 'Z' or '+03:00') when kickoff/start time is known. Never omit the offset on a date-time value.",
+      "anyOf": [
+        { "type": "string", "format": "date" },
+        { "type": "string", "format": "date-time" }
+      ]
+    },
+    "home_team": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Name of the home team/competitor. For neutral-venue fixtures, 'home' follows the official designation from the governing body's match sheet, not the actual venue location."
+    },
+    "away_team": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Name of the away team/competitor."
+    },
+    "home_score": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Goals/points scored by the home team, as a plain non-negative integer. Null when not applicable or unknown (postponed, cancelled, abandoned before a score existed, or completed but the score could not be confirmed). Never encode as a string or a combined 'X-Y' pair — home_score and away_score are always stored separately."
+    },
+    "away_score": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Goals/points scored by the away team. Same rules as home_score."
+    },
+    "result": {
+      "type": ["string", "null"],
+      "enum": [null, "home_win", "draw", "away_win", "void", "unknown"],
+      "description": "Outcome, derived from home_score/away_score when the event is completed and both are known integers: 'home_win' (home_score > away_score), 'away_win' (away_score > home_score), 'draw' (equal — only meaningful for sports where draws are possible). 'void' is used for abandoned events with no official result. 'unknown' is used when the event is confirmed completed but the score/result could not be confirmed. null means not applicable, i.e. the event has not been completed (status is 'scheduled', 'postponed', or 'cancelled')."
+    },
+    "venue": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional venue details. The whole object and every sub-field are optional; include whichever is known.",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "description": "Stadium/venue name." },
+        "city": { "type": "string", "minLength": 1, "description": "City the venue is in." },
+        "country": { "type": "string", "minLength": 1, "description": "Country the venue is in." }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": ["scheduled", "completed", "postponed", "cancelled", "abandoned"],
+      "description": "Lifecycle status of the event. 'scheduled': in the future, not yet played. 'completed': played to a normal finish. 'postponed': moved to a later date; this record carries no result. 'cancelled': will not be played or rescheduled; this record carries no result. 'abandoned': started but not finished (e.g. weather, crowd trouble); no invented final score."
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Name/identifier of the source the data was taken from, e.g. 'Wikipedia', 'BBC Sport', 'Premier League official site'."
+    },
+    "source_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Direct URL to the page/document the data was taken from."
+    },
+    "source_accessed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp, with UTC offset, recording when the source was accessed/retrieved for this record — not when the event happened."
+    },
+    "verification_status": {
+      "type": "string",
+      "enum": ["unverified", "verified", "conflicting", "disputed"],
+      "description": "'unverified': taken from a single source, not yet cross-checked. 'verified': cross-checked against at least one independent additional source and consistent. 'conflicting': independent sources disagree and this is unresolved. 'disputed': the historical record itself is contested (e.g. among official bodies), independent of this pipeline's own sourcing."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional free-text notes, e.g. context on conflicting sources, unusual circumstances, or resolution rationale."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": ["status"],
+        "properties": { "status": { "enum": ["scheduled", "postponed", "cancelled"] } }
+      },
+      "then": {
+        "properties": {
+          "home_score": { "const": null },
+          "away_score": { "const": null },
+          "result": { "const": null }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["status"],
+        "properties": { "status": { "const": "abandoned" } }
+      },
+      "then": {
+        "properties": { "result": { "enum": [null, "void"] } }
+      }
+    },
+    {
+      "if": {
+        "required": ["result"],
+        "properties": { "result": { "enum": ["home_win", "draw", "away_win"] } }
+      },
+      "then": {
+        "properties": {
+          "status": { "const": "completed" },
+          "home_score": { "type": "integer" },
+          "away_score": { "type": "integer" }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["result"],
+        "properties": { "result": { "const": "unknown" } }
+      },
+      "then": {
+        "properties": { "status": { "const": "completed" } }
+      }
+    }
+  ]
+}

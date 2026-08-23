@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+*.spec
+!packaging/*.spec
+sports-research-windows.zip
+
+# Env / secrets
+.env
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Generated data — keep the folders (.gitkeep) but not their contents.
+# Committed test fixtures (e.g. test_results.json) are explicit exceptions.
+data/raw/*
+data/processed/*
+data/exports/*
+data/cache/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/exports/.gitkeep
+!data/cache/.gitkeep
+!data/raw/test_results.json
+
+# Live smoke test output (network-required, run locally by the user).
+tests/live/output/
+
+sports_research/cache/__pycache__/
+tests/sports_research/cache/__pycache__/

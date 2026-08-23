@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0.0",
+  "raw_query": "List every UEFA Champions League match between 2018-01-01 and 2018-12-31.",
+  "status": "ready",
+  "constraints": {
+    "sport": {
+      "value": "football",
+      "source": "inferred",
+      "basis": "Entailed by the explicitly stated competition 'UEFA Champions League', which unambiguously denotes football."
+    },
+    "competition": {
+      "value": "UEFA Champions League",
+      "source": "explicit"
+    },
+    "date_from": {
+      "value": "2018-01-01",
+      "source": "explicit"
+    },
+    "date_to": {
+      "value": "2018-12-31",
+      "source": "explicit"
+    },
+    "required_fields": {
+      "value": ["date", "home_team", "away_team", "home_score", "away_score", "result"],
+      "source": "inferred",
+      "basis": "Default core-outcome field set when unspecified — see docs/research-request.md § Defaults."
+    },
+    "verification": {
+      "value": "required",
+      "source": "inferred",
+      "basis": "Default verification requirement when unspecified — see docs/research-request.md § Defaults."
+    },
+    "output_format": {
+      "value": "json",
+      "source": "inferred",
+      "basis": "Default output format when unspecified — see docs/research-request.md § Defaults."
+    }
+  },
+  "clarifications_needed": []
+}

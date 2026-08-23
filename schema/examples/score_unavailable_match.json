@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0.0",
+  "event_id": "football:example-regional-league:1951:1951-09-15:riverside-athletic-vs-milltown-town",
+  "sport": "football",
+  "competition": "Regional Football League",
+  "season": "1951",
+  "round": "Matchday 3",
+  "date": "1951-09-15",
+  "home_team": "Riverside Athletic",
+  "away_team": "Milltown Town",
+  "home_score": null,
+  "away_score": null,
+  "result": "unknown",
+  "venue": {
+    "name": "Riverside Ground",
+    "city": "Riverside",
+    "country": "England"
+  },
+  "status": "completed",
+  "source": "Regional League Historical Archive (illustrative)",
+  "source_url": "https://example.com/archive/1951-09-15-riverside-milltown",
+  "source_accessed_at": "2026-08-22T12:10:00Z",
+  "verification_status": "unverified",
+  "notes": "Illustrative example: a newspaper archive confirms the match was played to completion, but the final score was not legible/recorded in the available source. Fictional teams are used here so this doesn't misrepresent a real historical result as unknown."
+}

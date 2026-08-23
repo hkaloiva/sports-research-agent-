@@ -1,0 +1,28 @@
+# jsonschema: validates records against schema/*.schema.json (Steps 2-7).
+jsonschema>=4.18,<5
+
+# Zero-cost web search (no API key) — DuckDuckGo via ddgs.
+ddgs>=9.0
+
+# HTTP retrieval + HTML parsing (ContentProvider).
+requests>=2.31
+beautifulsoup4>=4.12
+lxml>=5.0
+
+# Export.
+pandas>=2.0
+openpyxl>=3.1
+
+# CLI.
+click>=8.1
+
+# Local web UI (optional, but a core dependency of this repo since the
+# spec asks for it built-in — no paid service, runs entirely locally).
+flask>=3.0
+
+# Configuration (.env loading).
+python-dotenv>=1.0
+
+# Optional: local browser rendering for JS-heavy pages (USE_BROWSER_FALLBACK=true).
+# Requires a separate one-time `playwright install chromium` — see docs/configuration.md.
+playwright>=1.40

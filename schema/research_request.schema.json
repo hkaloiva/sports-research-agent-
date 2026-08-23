@@ -1,0 +1,289 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sports-research-agent.local/schema/research_request.schema.json",
+  "title": "Research Request",
+  "description": "Structured representation of what a user is asking the research system to find. This is NOT the result data itself (see result_record.schema.json) — it's the request that would eventually drive a research/lookup step, which does not exist yet. See docs/research-request.md for the full explanation.",
+  "$comment": "Every entry under 'constraints' is a small envelope { value, source, basis?, raw_value? } rather than a bare value. 'source' is either 'explicit' (the user stated this, verbatim or losslessly reformatted) or 'inferred' (the system filled this in). Every 'inferred' entry MUST carry a 'basis' naming the documented rule used — see docs/research-request.md § Defaults for the actual rule text. A constraint the system cannot respond to without guessing (no documented rule applies) must be left out of 'constraints' entirely and surfaced instead as an entry in 'clarifications_needed' — never invented silently.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["raw_query", "status", "constraints", "clarifications_needed"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "description": "Version of this schema the request conforms to. Optional; assumed current if omitted."
+    },
+    "raw_query": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The user's request verbatim, before any parsing. Kept so every constraint (or refusal to guess one) can be traced back to what was actually asked."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["ready", "needs_clarification"],
+      "description": "'ready': everything needed to run the request is present (explicitly given or legitimately inferred from a documented rule). 'needs_clarification': something the request depends on is missing or ambiguous and must not be guessed — see clarifications_needed."
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Every field the requester can constrain. Each key is present only when the system has a value for it (explicit or inferred) — an absent key means 'no constraint on this dimension', not 'unknown'. A dimension that IS blocking (unknown but required to proceed) is never invented here; it shows up in clarifications_needed instead.",
+      "properties": {
+        "sport": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value", "source"],
+          "description": "Lowercase snake_case sport identifier, e.g. 'football' — same vocabulary as result_record.schema.json's 'sport' field.",
+          "properties": {
+            "value": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+            "source": { "type": "string", "enum": ["explicit", "inferred"] },
+            "basis": { "type": "string", "minLength": 1 },
+            "raw_value": { "type": "string", "minLength": 1 }
+          },
+          "if": { "required": ["source"], "properties": { "source": { "const": "inferred" } } },
+          "then": { "required": ["basis"] },
+          "else": { "not": { "required": ["basis"] } }
+        },
+        "competition": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value", "source"],
+          "description": "Competition/league/tournament name, e.g. 'Premier League'.",
+          "properties": {
+            "value": { "type": "string", "minLength": 1 },
+            "source": { "type": "string", "enum": ["explicit", "inferred"] },
+            "basis": { "type": "string", "minLength": 1 },
+            "raw_value": { "type": "string", "minLength": 1 }
+          },
+          "if": { "required": ["source"], "properties": { "source": { "const": "inferred" } } },
+          "then": { "required": ["basis"] },
+          "else": { "not": { "required": ["basis"] } }
+        },
+        "season": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value", "source"],
+          "description": "Canonical season string ('YYYY' or 'YYYY-YYYY'), same format as result_record.schema.json's 'season' field. If the user wrote an informal form ('2003/04'), the normalized canonical value goes in 'value' and the literal original text goes in 'raw_value' — normalization alone does NOT make this 'inferred', since no new constraint is being added, only reformatted.",
+          "properties": {
+            "value": { "type": "string", "pattern": "^\\d{4}(-\\d{4})?$" },
+            "source": { "type": "string", "enum": ["explicit", "inferred"] },
+            "basis": { "type": "string", "minLength": 1 },
+            "raw_value": { "type": "string", "minLength": 1 }
+          },
+          "if": { "required": ["source"], "properties": { "source": { "const": "inferred" } } },
+          "then": { "required": ["basis"] },
+          "else": { "not": { "required": ["basis"] } }
+        },
+        "event_name": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value", "source"],
+          "description": "Added for the sport-generic standalone application (docs/migration.md): a specific event name beyond competition+season, e.g. 'Men's Singles', 'Brazilian Grand Prix' — needed for individual/motorsport requests where 'teams' doesn't apply. Optional; existing football-only requests are unaffected.",
+          "properties": {
+            "value": { "type": "string", "minLength": 1 },
+            "source": { "type": "string", "enum": ["explicit", "inferred"] },
+            "basis": { "type": "string", "minLength": 1 },
+            "raw_value": { "type": "string", "minLength": 1 }
+          },
+          "if": { "required": ["source"], "properties": { "source": { "const": "inferred" } } },
+          "then": { "required": ["basis"] },
+          "else": { "not": { "required": ["basis"] } }
+        },
+        "date_from": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value", "source"],
+          "description": "Inclusive lower bound on event date (ISO 8601 date or date-time). Must NEVER be inferred from 'season' unless a documented competition-calendar rule exists (none exists yet in this project) — see docs/research-request.md.",
+          "properties": {
+            "value": { "anyOf": [{ "type": "string", "format": "date" }, { "type": "string", "format": "date-time" }] },
+            "source": { "type": "string", "enum": ["explicit", "inferred"] },
+            "basis": { "type": "string", "minLength": 1 },
+            "raw_value": { "type": "string", "minLength": 1 }
+          },
+          "if": { "required": ["source"], "properties": { "source": { "const": "inferred" } } },
+          "then": { "required": ["basis"] },
+          "else": { "not": { "required": ["basis"] } }
+        },
+        "date_to": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value", "source"],
+          "description": "Inclusive upper bound on event date. Same rules as date_from.",
+          "properties": {
+            "value": { "anyOf": [{ "type": "string", "format": "date" }, { "type": "string", "format": "date-time" }] },
+            "source": { "type": "string", "enum": ["explicit", "inferred"] },
+            "basis": { "type": "string", "minLength": 1 },
+            "raw_value": { "type": "string", "minLength": 1 }
+          },
+          "if": { "required": ["source"], "properties": { "source": { "const": "inferred" } } },
+          "then": { "required": ["basis"] },
+          "else": { "not": { "required": ["basis"] } }
+        },
+        "teams": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value", "source"],
+          "description": "One or more team names to filter by. Two entries commonly means a head-to-head request (matches where both teams appear, in either order) — a documentation convention, not a structurally distinct field.",
+          "properties": {
+            "value": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "source": { "type": "string", "enum": ["explicit", "inferred"] },
+            "basis": { "type": "string", "minLength": 1 },
+            "raw_value": { "type": "string", "minLength": 1 }
+          },
+          "if": { "required": ["source"], "properties": { "source": { "const": "inferred" } } },
+          "then": { "required": ["basis"] },
+          "else": { "not": { "required": ["basis"] } }
+        },
+        "venue": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value", "source"],
+          "description": "Filter by venue attributes. Shape matches result_record.schema.json's 'venue' field.",
+          "properties": {
+            "value": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "name": { "type": "string", "minLength": 1 },
+                "city": { "type": "string", "minLength": 1 },
+                "country": { "type": "string", "minLength": 1 }
+              }
+            },
+            "source": { "type": "string", "enum": ["explicit", "inferred"] },
+            "basis": { "type": "string", "minLength": 1 },
+            "raw_value": { "type": "string", "minLength": 1 }
+          },
+          "if": { "required": ["source"], "properties": { "source": { "const": "inferred" } } },
+          "then": { "required": ["basis"] },
+          "else": { "not": { "required": ["basis"] } }
+        },
+        "home_away": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value", "source"],
+          "description": "Restrict to matches where the (first) requested team played at home, away, or either. Meaningless without 'teams' — documented, not schema-enforced.",
+          "properties": {
+            "value": { "type": "string", "enum": ["home", "away", "any"] },
+            "source": { "type": "string", "enum": ["explicit", "inferred"] },
+            "basis": { "type": "string", "minLength": 1 },
+            "raw_value": { "type": "string", "minLength": 1 }
+          },
+          "if": { "required": ["source"], "properties": { "source": { "const": "inferred" } } },
+          "then": { "required": ["basis"] },
+          "else": { "not": { "required": ["basis"] } }
+        },
+        "result_types": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value", "source"],
+          "description": "Restrict to matches whose result is one of these — same vocabulary as result_record.schema.json's 'result' field (excluding null).",
+          "properties": {
+            "value": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["home_win", "away_win", "draw", "void", "unknown"] },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "source": { "type": "string", "enum": ["explicit", "inferred"] },
+            "basis": { "type": "string", "minLength": 1 },
+            "raw_value": { "type": "string", "minLength": 1 }
+          },
+          "if": { "required": ["source"], "properties": { "source": { "const": "inferred" } } },
+          "then": { "required": ["basis"] },
+          "else": { "not": { "required": ["basis"] } }
+        },
+        "required_fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value", "source"],
+          "description": "Which result_record fields the response must include. Values are restricted to that schema's own field names, so the two schemas stay in sync without one referencing the other's file.",
+          "properties": {
+            "value": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "event_id", "sport", "competition", "season", "round", "date",
+                  "home_team", "away_team", "home_score", "away_score", "result",
+                  "venue", "status", "source", "source_url", "source_accessed_at",
+                  "verification_status", "notes"
+                ]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "source": { "type": "string", "enum": ["explicit", "inferred"] },
+            "basis": { "type": "string", "minLength": 1 },
+            "raw_value": { "type": "string", "minLength": 1 }
+          },
+          "if": { "required": ["source"], "properties": { "source": { "const": "inferred" } } },
+          "then": { "required": ["basis"] },
+          "else": { "not": { "required": ["basis"] } }
+        },
+        "output_format": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value", "source"],
+          "description": "Requested export format for the eventual result set.",
+          "properties": {
+            "value": { "type": "string", "enum": ["json", "csv", "excel"] },
+            "source": { "type": "string", "enum": ["explicit", "inferred"] },
+            "basis": { "type": "string", "minLength": 1 },
+            "raw_value": { "type": "string", "minLength": 1 }
+          },
+          "if": { "required": ["source"], "properties": { "source": { "const": "inferred" } } },
+          "then": { "required": ["basis"] },
+          "else": { "not": { "required": ["basis"] } }
+        },
+        "verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value", "source"],
+          "description": "Whether returned records must have verification_status 'verified' before being included.",
+          "properties": {
+            "value": { "type": "string", "enum": ["required", "not_required"] },
+            "source": { "type": "string", "enum": ["explicit", "inferred"] },
+            "basis": { "type": "string", "minLength": 1 },
+            "raw_value": { "type": "string", "minLength": 1 }
+          },
+          "if": { "required": ["source"], "properties": { "source": { "const": "inferred" } } },
+          "then": { "required": ["basis"] },
+          "else": { "not": { "required": ["basis"] } }
+        }
+      }
+    },
+    "clarifications_needed": {
+      "type": "array",
+      "description": "Questions that must be answered before this request can run. Must be empty when status is 'ready' and non-empty when status is 'needs_clarification' (enforced below) — a request can never claim to be ready while something is still unresolved, and can never claim to need clarification without saying what for.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["field", "question", "reason"],
+        "properties": {
+          "field": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Name of the ambiguous/missing constraint (e.g. 'teams', 'season'), or 'general' if it doesn't map to a single field."
+          },
+          "question": { "type": "string", "minLength": 1, "description": "Question to put back to the user." },
+          "reason": { "type": "string", "minLength": 1, "description": "Why this couldn't be resolved automatically." }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "required": ["status"], "properties": { "status": { "const": "ready" } } },
+      "then": { "properties": { "clarifications_needed": { "maxItems": 0 } } }
+    },
+    {
+      "if": { "required": ["status"], "properties": { "status": { "const": "needs_clarification" } } },
+      "then": { "properties": { "clarifications_needed": { "minItems": 1 } } }
+    }
+  ]
+}

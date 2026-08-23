@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0.0",
+  "raw_query": "How have Liverpool and Everton done against each other in the Premier League?",
+  "status": "ready",
+  "constraints": {
+    "sport": {
+      "value": "football",
+      "source": "inferred",
+      "basis": "Entailed by the explicitly stated competition 'Premier League', which unambiguously denotes English top-flight football."
+    },
+    "competition": {
+      "value": "Premier League",
+      "source": "explicit"
+    },
+    "teams": {
+      "value": ["Liverpool", "Everton"],
+      "source": "explicit"
+    },
+    "required_fields": {
+      "value": ["date", "home_team", "away_team", "home_score", "away_score", "result"],
+      "source": "inferred",
+      "basis": "Default core-outcome field set when unspecified — see docs/research-request.md § Defaults."
+    },
+    "verification": {
+      "value": "required",
+      "source": "inferred",
+      "basis": "Default verification requirement when unspecified — see docs/research-request.md § Defaults."
+    },
+    "output_format": {
+      "value": "json",
+      "source": "inferred",
+      "basis": "Default output format when unspecified — see docs/research-request.md § Defaults."
+    }
+  },
+  "clarifications_needed": []
+}

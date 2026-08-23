@@ -1,0 +1,18 @@
+# SYNTHETIC TEST FIXTURE — NOT REAL MATCH DATA.
+# Fictional opponent names (Test/Sample/Fixture/Placeholder/Mock ...) so this
+# can never be mistaken for real historical Arsenal results. Exists only to
+# exercise extractor.py's parsing logic: a normal home win, a normal away
+# win, a home draw, an away loss, a row with no round given, and four
+# deliberately malformed rows to exercise the 'ambiguous' reporting path.
+
+2003-08-16|Matchweek 1|Home|Test City|2|1
+2003-08-23|Matchweek 2|Away|Sample United|0|3
+2003-08-30|Matchweek 3|Home|Fixture Town|1|1
+2003-09-13||Away|Placeholder Rovers|2|2
+2003-09-20|Matchweek 5|Away|Mock Athletic|1|4
+
+# Malformed rows below — each should be reported as ambiguous, not guessed.
+2003-09-27|Matchweek 6|Home|Test City 2|3
+2003-10-04|Matchweek 7|Sideways|Sample United|1|0
+2003-10-11|Matchweek 8|Home|Fixture Town|two|1
+13-10-2003|Matchweek 9|Away|Placeholder Rovers|1|1

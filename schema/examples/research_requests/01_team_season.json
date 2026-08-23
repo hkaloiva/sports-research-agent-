@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0.0",
+  "raw_query": "Find all Arsenal Premier League results from 2003/04",
+  "status": "ready",
+  "constraints": {
+    "sport": {
+      "value": "football",
+      "source": "inferred",
+      "basis": "Entailed by the explicitly stated competition 'Premier League', which unambiguously denotes English top-flight football — not a system-wide default, a logical consequence of another explicit field."
+    },
+    "competition": {
+      "value": "Premier League",
+      "source": "explicit"
+    },
+    "season": {
+      "value": "2003-2004",
+      "source": "explicit",
+      "raw_value": "2003/04"
+    },
+    "teams": {
+      "value": ["Arsenal"],
+      "source": "explicit"
+    },
+    "required_fields": {
+      "value": ["date", "home_team", "away_team", "home_score", "away_score", "result"],
+      "source": "explicit"
+    },
+    "verification": {
+      "value": "required",
+      "source": "explicit"
+    },
+    "output_format": {
+      "value": "json",
+      "source": "inferred",
+      "basis": "Default output format when unspecified — see docs/research-request.md § Defaults."
+    }
+  },
+  "clarifications_needed": []
+}

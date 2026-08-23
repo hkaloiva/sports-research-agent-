@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "event_id": "football:la-liga:2019-2020:2019-10-26:real-madrid-vs-barcelona",
+  "sport": "football",
+  "competition": "La Liga",
+  "season": "2019-2020",
+  "date": "2019-10-26",
+  "home_team": "Real Madrid",
+  "away_team": "FC Barcelona",
+  "home_score": null,
+  "away_score": null,
+  "result": null,
+  "venue": {
+    "name": "Santiago Bernabéu",
+    "city": "Madrid",
+    "country": "Spain"
+  },
+  "status": "postponed",
+  "source": "Wikipedia",
+  "source_url": "https://en.wikipedia.org/wiki/El_Cl%C3%A1sico",
+  "source_accessed_at": "2026-08-22T12:05:00Z",
+  "verification_status": "verified",
+  "notes": "Originally scheduled fixture postponed due to public order concerns in Catalonia; later rescheduled and played on 2019-12-18, which is tracked as a separate completed record."
+}

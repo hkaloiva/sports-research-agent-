@@ -1,0 +1,72 @@
+name: Build Windows executable
+
+on:
+  workflow_dispatch: {}
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install the application and PyInstaller
+        run: |
+          pip install -e .
+          pip install pyinstaller
+
+      - name: Build the Windows executable
+        run: |
+          pyinstaller --onedir --name sports-research --paths . --add-data "schema;schema" --noconfirm packaging/entrypoint.py
+
+      - name: Smoke test — schema was actually bundled
+        run: |
+          $found = Get-ChildItem -Recurse ".\dist\sports-research" -Filter "event_result.schema.json"
+          if (-not $found) { throw "event_result.schema.json was not bundled into the build" }
+          Write-Output "Found bundled schema at: $($found.FullName)"
+
+      - name: Smoke test — --help
+        run: |
+          $output = & ".\dist\sports-research\sports-research.exe" --help 2>&1 | Out-String
+          Write-Output $output
+          if ($LASTEXITCODE -ne 0) { throw "sports-research.exe --help exited $LASTEXITCODE" }
+          if ($output -notmatch "QUERY") { throw "unexpected --help output" }
+
+      - name: Smoke test — offline request (ambiguous query needs no network)
+        run: |
+          $output = & ".\dist\sports-research\sports-research.exe" "Show me United's matches from last season." 2>&1 | Out-String
+          Write-Output $output
+          if ($LASTEXITCODE -ne 1) { throw "expected exit code 1 for an ambiguous query, got $LASTEXITCODE" }
+          if ($output -notmatch "needs clarification") { throw "expected clarification output was missing" }
+          if ($output -notmatch "Manchester United") { throw "expected clarification detail was missing" }
+
+      - name: Zip the build
+        run: Compress-Archive -Path dist\sports-research\* -DestinationPath sports-research-windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sports-research-windows
+          path: sports-research-windows.zip
+
+      - name: Attach build to the GitHub Release (tag pushes only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # A tag pushed via git has no Release yet, so create one. A tag
+          # created by publishing a Release through the GitHub web UI
+          # already has one (asset-less) — in that case just upload the
+          # zip onto it instead of failing on "release already exists".
+          gh release upload "${{ github.ref_name }}" "sports-research-windows.zip" --clobber
+          if ($LASTEXITCODE -ne 0) {
+            gh release create "${{ github.ref_name }}" "sports-research-windows.zip" `
+              --title "Sports Research Agent ${{ github.ref_name }}" `
+              --notes "Windows build of the sports-research CLI. Unzip, then run sports-research.exe from cmd/PowerShell (double-clicking opens interactive mode). See README.md for usage and docs/limitations.md for what this does and doesn't guarantee. Zero mandatory paid API/subscription."
+            if ($LASTEXITCODE -ne 0) { throw "both gh release upload and gh release create failed" }
+          }

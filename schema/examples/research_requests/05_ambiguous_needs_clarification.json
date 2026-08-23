@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0.0",
+  "raw_query": "Show me United's matches from last season.",
+  "status": "needs_clarification",
+  "constraints": {
+    "sport": {
+      "value": "football",
+      "source": "inferred",
+      "basis": "System-wide default: this project currently only supports football (see README.md). Used only because nothing in the raw query implies a different, unsupported sport."
+    },
+    "required_fields": {
+      "value": ["date", "home_team", "away_team", "home_score", "away_score", "result"],
+      "source": "inferred",
+      "basis": "Default core-outcome field set when unspecified — see docs/research-request.md § Defaults."
+    },
+    "verification": {
+      "value": "required",
+      "source": "inferred",
+      "basis": "Default verification requirement when unspecified — see docs/research-request.md § Defaults."
+    },
+    "output_format": {
+      "value": "json",
+      "source": "inferred",
+      "basis": "Default output format when unspecified — see docs/research-request.md § Defaults."
+    }
+  },
+  "clarifications_needed": [
+    {
+      "field": "teams",
+      "question": "Which club named 'United' do you mean — e.g. Manchester United, Newcastle United, West Ham United, or Leeds United?",
+      "reason": "'United' matches multiple well-known football clubs and the request does not disambiguate which one; guessing one would silently narrow the request."
+    },
+    {
+      "field": "season",
+      "question": "Which season do you mean by 'last season'? Please give an explicit season, e.g. '2023-2024'.",
+      "reason": "'Last season' is relative to an unstated reference date, and there is no documented rule in this project for resolving relative season references to a concrete season."
+    }
+  ]
+}

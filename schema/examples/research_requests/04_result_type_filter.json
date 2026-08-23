@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0.0",
+  "raw_query": "Show me all Arsenal away draws in the Premier League 2007/08 season.",
+  "status": "ready",
+  "constraints": {
+    "sport": {
+      "value": "football",
+      "source": "inferred",
+      "basis": "Entailed by the explicitly stated competition 'Premier League', which unambiguously denotes English top-flight football."
+    },
+    "competition": {
+      "value": "Premier League",
+      "source": "explicit"
+    },
+    "season": {
+      "value": "2007-2008",
+      "source": "explicit",
+      "raw_value": "2007/08"
+    },
+    "teams": {
+      "value": ["Arsenal"],
+      "source": "explicit"
+    },
+    "home_away": {
+      "value": "away",
+      "source": "explicit"
+    },
+    "result_types": {
+      "value": ["draw"],
+      "source": "explicit"
+    },
+    "required_fields": {
+      "value": ["date", "home_team", "away_team", "home_score", "away_score", "result"],
+      "source": "inferred",
+      "basis": "Default core-outcome field set when unspecified — see docs/research-request.md § Defaults."
+    },
+    "verification": {
+      "value": "required",
+      "source": "inferred",
+      "basis": "Default verification requirement when unspecified — see docs/research-request.md § Defaults."
+    },
+    "output_format": {
+      "value": "json",
+      "source": "inferred",
+      "basis": "Default output format when unspecified — see docs/research-request.md § Defaults."
+    }
+  },
+  "clarifications_needed": []
+}
