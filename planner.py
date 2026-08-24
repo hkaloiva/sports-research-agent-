@@ -185,6 +185,41 @@ def build_search_queries(constraints: dict) -> list:
             "rationale": "Archive-oriented phrasing to bias toward structured historical listings over news.",
         })
 
+    elif teams and len(teams) == 1 and season:
+        # A real gap found via a live query ("All results Newcastle United
+        # season 2000/2001" — team + season, no recognized competition
+        # name): this used to fall straight through to the no-season
+        # fallback below and silently drop the season from every
+        # generated query, biasing search results toward the *current*
+        # season instead of the requested one.
+        team = teams[0]
+        slash = _season_slash(season)
+        hyphen_short = _season_hyphen_short(season)
+        start_year, end_year = _season_years(season)
+
+        queries.append({
+            "query": f"{team} {slash} results",
+            "rationale": "Direct team + season (slash form) phrasing; no competition name was recognized.",
+        })
+        if end_year is not None:
+            queries.append({
+                "query": f"{team} fixtures results {start_year} {end_year}",
+                "rationale": "Both calendar years spelled out, for sources indexed by year rather than season label.",
+            })
+        else:
+            queries.append({
+                "query": f"{team} fixtures results {start_year}",
+                "rationale": "Calendar year spelled out, for sources indexed by year rather than season label.",
+            })
+        queries.append({
+            "query": f"{team} {hyphen_short} match results",
+            "rationale": "Compact hyphenated season form, common in reference-site URLs and search indexes.",
+        })
+        queries.append({
+            "query": f"historical {team} {slash} results",
+            "rationale": "Leads with 'historical' to bias toward archive/reference sources over recent news.",
+        })
+
     elif teams and len(teams) == 1:
         team = teams[0]
         comp_suffix = f" {competition}" if competition else ""

@@ -134,6 +134,37 @@ class TestResultTypeFiltering(unittest.TestCase):
         self.assertEqual(scope["home_away"]["value"], "away")
 
 
+class TestTeamSeasonWithoutCompetition(unittest.TestCase):
+    """A real gap found by running the packaged app on a live query: team
+    + season with no recognized competition name previously fell through
+    to the no-season fallback branch and silently dropped the season from
+    every generated query, biasing search results toward the current
+    season instead of the one actually requested."""
+
+    @classmethod
+    def setUpClass(cls):
+        from sports_research.research.normalizer import normalize_request
+
+        cls.request = normalize_request("All results Newcastle United season 2000/2001")
+        cls.plan = build_search_plan(cls.request)
+        cls.validator = build_plan_validator()
+
+    def test_plan_validates_against_schema(self):
+        self.assertEqual(validate_plan(self.plan, self.validator), [])
+
+    def test_every_query_mentions_the_season(self):
+        for q in self.plan["search_queries"]:
+            with self.subTest(query=q["query"]):
+                self.assertTrue(
+                    "2000" in q["query"] and ("2001" in q["query"] or "00/01" in q["query"] or "00-01" in q["query"]),
+                    f"season missing from generated query: {q['query']!r}",
+                )
+
+    def test_queries_mention_the_team(self):
+        for q in self.plan["search_queries"]:
+            self.assertIn("Newcastle United", q["query"])
+
+
 class TestAmbiguousRequestProducesNoPlan(unittest.TestCase):
     """Category 5: an ambiguous ResearchRequest must NOT produce a SearchPlan."""
 
