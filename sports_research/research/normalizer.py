@@ -35,6 +35,15 @@ _COMPETITIONS = [
     ("f1", "Formula 1", "motorsport"),
 ]
 
+# Sports this project has no support for at all. If one of these is named
+# and no known competition matched, Rule 2 below (default sport to
+# football) must not apply — see docs/research-request.md § Defaults.
+_UNSUPPORTED_SPORT_KEYWORDS = {
+    "basketball", "cricket", "rugby", "baseball", "ice hockey", "hockey",
+    "golf", "boxing", "volleyball", "handball", "cycling", "swimming",
+    "athletics", "american football", "nfl", "nba", "mlb", "nhl",
+}
+
 # Ambiguous single-word club/team names that must not be silently resolved.
 _AMBIGUOUS_TEAM_ALIASES = {
     "united": ["Manchester United", "Newcastle United", "West Ham United", "Leeds United"],
@@ -45,7 +54,7 @@ _STOPWORDS = {
     "find", "all", "every", "results", "result", "of", "the", "from", "season", "match",
     "matches", "a", "an", "for", "show", "me", "list", "get", "please", "and", "to",
     "how", "who", "what", "when", "where", "why", "which", "did", "does", "do", "have",
-    "has", "against", "each", "other", "in", "done",
+    "has", "against", "each", "other", "in", "done", "search",
 }
 
 _COORDINATORS = re.compile(r"\s*(?:,|\band\b|\bvs\.?\b|\bv\b)\s*", re.IGNORECASE)
@@ -75,6 +84,10 @@ def _find_season(text: str):
         return match.group(0), f"{start}-{end}"
 
     match = re.search(r"\b(\d{4})-(\d{4})\b", text)  # '2003-2004'
+    if match:
+        return match.group(0), f"{match.group(1)}-{match.group(2)}"
+
+    match = re.search(r"\b(\d{4})\s*/\s*(\d{4})\b", text)  # '2002/2003'
     if match:
         return match.group(0), f"{match.group(1)}-{match.group(2)}"
 
@@ -195,11 +208,22 @@ def normalize_request(raw_query: str) -> dict:
         constraints.pop("season", None)
 
     if not competition_match and "sport" not in constraints:
-        clarifications.append({
-            "field": "sport",
-            "question": "Which sport or competition is this about?",
-            "reason": "No recognized sport or competition name was found in the request.",
-        })
+        implied_other_sport = next((kw for kw in _UNSUPPORTED_SPORT_KEYWORDS if kw in text_lower), None)
+        if implied_other_sport:
+            clarifications.append({
+                "field": "sport",
+                "question": "Which sport or competition is this about?",
+                "reason": f"'{implied_other_sport}' isn't a sport this project currently supports "
+                          "(football, tennis, skateboarding, motorsport only), and no recognized "
+                          "competition name was found either.",
+            })
+        else:
+            constraints["sport"] = {
+                "value": "football", "source": "inferred",
+                "basis": "System-wide default: this project currently only supports football "
+                         "(see README.md). Used only because nothing in the raw query implies a "
+                         "different, unsupported sport.",
+            }
 
     if "required_fields" not in constraints:
         constraints["required_fields"] = {

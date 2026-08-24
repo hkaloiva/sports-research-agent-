@@ -69,6 +69,49 @@ class TestNormalizeRequest(unittest.TestCase):
         self.assertEqual(sport["source"], "inferred")
         self.assertIn("basis", sport)
 
+    def test_sport_defaults_to_football_when_no_competition_named(self):
+        # docs/research-request.md § Defaults, rule 2 — a real bug found by
+        # actually running the packaged Windows exe: this default was
+        # documented but never implemented, so every query without one of
+        # the exact known competition phrases got stuck asking for a sport
+        # that was already obvious from context (or, for the literal word
+        # "football", stated outright).
+        request = normalize_request("Search all Man Utd football club game results for season 2002/2003")
+        self.assertEqual(request["constraints"]["sport"]["value"], "football")
+        self.assertEqual(request["constraints"]["sport"]["source"], "inferred")
+        fields = {c["field"] for c in request["clarifications_needed"]}
+        self.assertNotIn("sport", fields)
+
+    def test_ambiguous_team_alias_still_gets_a_defaulted_sport(self):
+        # 'United' remains ambiguous (needs clarification), but the sport
+        # is unambiguous from context — the two are independent.
+        request = normalize_request("Show me United's matches from last season.")
+        self.assertEqual(request["constraints"]["sport"]["value"], "football")
+        fields = {c["field"] for c in request["clarifications_needed"]}
+        self.assertNotIn("sport", fields)
+
+    def test_sport_is_not_defaulted_when_a_different_unsupported_sport_is_named(self):
+        request = normalize_request("Find every basketball result from the 2003 season.")
+        self.assertNotIn("sport", request["constraints"])
+        fields = {c["field"] for c in request["clarifications_needed"]}
+        self.assertIn("sport", fields)
+
+    def test_four_digit_slash_four_digit_season_form(self):
+        # '2002/2003' (both halves 4 digits) wasn't matched by either the
+        # '2003/04' or '2003-2004' season patterns and silently fell back
+        # to just the bare year '2002' — found via the exact query above.
+        request = normalize_request("Man Utd results for season 2002/2003")
+        season = request["constraints"]["season"]
+        self.assertEqual(season["value"], "2002-2003")
+        self.assertEqual(season["raw_value"], "2002/2003")
+
+    def test_leading_search_verb_is_not_swept_into_the_team_name(self):
+        # 'Search' (capitalized as the sentence's first word) wasn't in
+        # the stopword list, so it leaked into the extracted team name
+        # as 'Search Man Utd' instead of 'Man Utd'.
+        request = normalize_request("Search all Man Utd football club game results for season 2002/2003")
+        self.assertEqual(request["constraints"]["teams"]["value"], ["Man Utd"])
+
 
 if __name__ == "__main__":
     unittest.main()
