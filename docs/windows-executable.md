@@ -30,12 +30,13 @@ script.
 ## Getting the build
 
 1. **GitHub Release** (recommended, no git required): a tag matching
-   `v*` (e.g. `v0.1.0`) triggers a release build with the zip attached.
-   You don't need `git` installed to create that tag — GitHub's web UI
-   can create it for you:
+   `v*` (e.g. `v0.1.0`) or a bare version number (e.g. `0.1.0`)
+   triggers a release build with the zip attached. You don't need
+   `git` installed to create that tag — GitHub's web UI can create it
+   for you:
    - Go to the repository's `Releases` page → "Draft a new release".
-   - In "Choose a tag", type a new tag name (e.g. `v0.1.0`) — GitHub
-     offers "Create new tag: ... on publish".
+   - In "Choose a tag", type a new tag name (e.g. `0.1.0` or `v0.1.0`
+     — either works) — GitHub offers "Create new tag: ... on publish".
    - Leave "Target" on the default branch (or pick another branch/commit
      if you want a different one built).
    - Click "Publish release". Publishing creates the tag, which fires
